@@ -1,5 +1,11 @@
-const canvas = document.createElement('canvas')
 const container = document.getElementById('container')
+const range = document.getElementById('range')
+const numRange = document.getElementById('numRange')
+const cor = document.getElementById('cor')
+
+numRange.textContent = range.value
+
+const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
 
 function resize() {
@@ -18,27 +24,28 @@ resizeObserver.observe(container)
 container.appendChild(canvas)
 
 let pressed = false
-let size = 4
+let size = 
 
 canvas.addEventListener('pointerdown', (e)=>{
     if (e.button!=0) return;
-    ctx.moveTo(e.clientX,e.clientY)
     pressed = true  
+    const rect = canvas.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    ctx.moveTo(mx, my)
+    ctx.lineWidth = size
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    ctx.strokeStyle = cor.value
+    ctx.lineTo(mx, my)
+    ctx.beginPath()
+    ctx.stroke()
 })
 
 
 document.addEventListener('pointerup', (e)=>{
     if (e.button!=0) return;
     pressed = false
-    const rect = canvas.getBoundingClientRect()
-    const mx = e.clientX
-    const my = e.clientY
-    ctx.lineWidth = size
-    ctx.lineCap = "round"
-    ctx.lineJoin = "round"
-    ctx.lineTo(e.clientX,e.clientY)
-    ctx.stroke()
-    ctx.beginPath()
     
     // ctx.beginPath()
     // ctx.fillStyle = 'black'
@@ -50,9 +57,10 @@ document.addEventListener('pointerup', (e)=>{
 canvas.addEventListener('pointermove', (e)=>{
     if (!pressed) {return};
     const rect = canvas.getBoundingClientRect()
-    const mx = e.clientX
-    const my = e.clientY
-    ctx.lineTo(e.clientX,e.clientY)
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    ctx.strokeStyle = cor.value
+    ctx.lineTo(mx, my)
     ctx.stroke()
     // ctx.beginPath()
     // ctx.fillStyle = 'black'
@@ -60,12 +68,8 @@ canvas.addEventListener('pointermove', (e)=>{
     // ctx.fill()
 })
 
-document.addEventListener('keydown',(e)=>{
-    if (e.key=='+'){
-        size=Math.min(size+1,50);
-    }
-    if (e.key=='-'){
-        size=Math.max(size-1,1)
-        console.log(size)
-    }
+range.addEventListener('input',(e)=>{
+    numRange.textContent = Math.max(range.value,1)
+    size = numRange.textContent
+    console.log(range.value)
 })

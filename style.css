@@ -5,7 +5,19 @@
 
 body {
     overflow: hidden;
+}
 
+.controlers {
+    display: flex;
+    padding: 10px;
+}
+
+.controlers label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    border-left: 1px solid black;
 }
 
 .container {

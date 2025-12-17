@@ -1,6 +1,8 @@
 const container = document.getElementById('container')
 const range = document.getElementById('range')
 const numRange = document.getElementById('numRange')
+const pincel = document.getElementById('pincel')
+const borracha = document.getElementById('borracha')
 const cor = document.getElementById('cor')
 
 numRange.textContent = range.value
@@ -59,7 +61,11 @@ canvas.addEventListener('pointermove', (e)=>{
     const rect = canvas.getBoundingClientRect()
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
-    ctx.strokeStyle = cor.value
+    if (borracha.checked){
+        ctx.strokeStyle = 'white'
+    }else{
+        ctx.strokeStyle = cor.value
+    }
     ctx.lineTo(mx, my)
     ctx.stroke()
     // ctx.beginPath()

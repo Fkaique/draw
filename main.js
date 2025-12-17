@@ -32,13 +32,13 @@ canvas.addEventListener('pointerdown', (e)=>{
     const rect = canvas.getBoundingClientRect()
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
+    ctx.beginPath()
     ctx.moveTo(mx, my)
     ctx.lineWidth = size
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
     ctx.strokeStyle = cor.value
     ctx.lineTo(mx, my)
-    ctx.beginPath()
     ctx.stroke()
 })
 

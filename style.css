@@ -10,6 +10,7 @@ body {
 .controlers {
     display: flex;
     padding: 10px;
+    justify-content: center;
 }
 
 .controlers label {
@@ -22,6 +23,7 @@ body {
 
 .container {
     border: 1px solid black;
+    margin: 0 auto;
     resize: both;
     overflow: hidden;
     width: 500px;
@@ -33,4 +35,11 @@ canvas {
     touch-action: none;
     width: 100%;
     height: 100%;
+}
+
+@media (max-width: 600px){
+    .container{
+        width: 200px;
+        height: 200px;
+    }
 }

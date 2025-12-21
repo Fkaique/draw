@@ -29,6 +29,12 @@ body {
     width: 500px;
     height: 500px;
 }
+.files{
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    gap: 10px;
+}
 
 canvas {
     cursor: crosshair;

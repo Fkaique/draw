@@ -1,5 +1,7 @@
 const container = document.getElementById('container')
 // const criar = document.getElementById('criar')
+const salvar = document.getElementById('salvar')
+const abrir = document.getElementById('abrir')
 const range = document.getElementById('range')
 const numRange = document.getElementById('numRange')
 const pincel = document.getElementById('pincel')
@@ -22,17 +24,20 @@ let ctx = canvas.getContext('2d', {
 ctx.imageSmoothingEnabled = false
 ctx.imageSmoothingQuality = "low"
 
+
+let img = new Image();
+let scale = 1;
+
 let lineStart = [0,0]
 let lineStroke = [0,0,0,255]
-
 // canvas.width = 100
 // canvas.height = 100 
 
 function resize() {
     const rect = container.getBoundingClientRect()
     const saved = ctx.getImageData(0,0,canvas.width,canvas.height)
-    canvas.width  = rect.width
-    canvas.height = rect.height
+    canvas.width  = rect.width / scale
+    canvas.height = rect.height / scale
     ctx.fillStyle = corB.value
     ctx.fillRect(0,0,canvas.width,canvas.height)
     ctx.putImageData(saved,0,0)
@@ -149,6 +154,28 @@ function lineTo(x2, y2, thickness = 1) {
     lineStart = [x2, y2]
 }
 
+function drawDot(x, y, thickness) {
+    const r = Math.floor(thickness / 2)
+    const image = ctx.getImageData(
+        x - r, y - r,
+        thickness, thickness
+    )
+
+    for (let ox = -r; ox <= r; ox++) {
+        for (let oy = -r; oy <= r; oy++) {
+            if (ox*ox + oy*oy > r*r) continue
+            const px = ox + r
+            const py = oy + r
+            const i = (py * image.width + px) * 4
+            image.data[i]     = lineStroke[0]
+            image.data[i + 1] = lineStroke[1]
+            image.data[i + 2] = lineStroke[2]
+            image.data[i + 3] = lineStroke[3]
+        }
+    }
+
+    ctx.putImageData(image, x - r, y - r)
+}
 
 function fill(x,y,tint){
     const rect = canvas.getBoundingClientRect()
@@ -210,22 +237,23 @@ canvas.addEventListener('pointerdown', (e)=>{
         fill(mx,my,hexToRgba(corA.value))
     }else if (pincel.checked || borracha.checked){
         if (e.button!=0) return;
-        pressed = true  
-        const rect = canvas.getBoundingClientRect()
-        // ctx.beginPath()
+        pressed = true
         moveTo(mx, my)
-        // ctx.lineWidth = size
-        // ctx.lineCap = "round"
-        // ctx.lineJoin = "round"
-        // ctx.strokeStyle = cor.value
-        if (borracha.checked){
-            lineStroke = hexToRgba(corB.value)
-        }else {
-            lineStroke = hexToRgba(corA.value)
-        }
-        lineTo(mx, my, size)
-        // ctx.stroke()
+
+        lineStroke = borracha.checked
+            ? hexToRgba(corB.value)
+            : hexToRgba(corA.value)
+
+        // 🔥 desenha ponto no clique
+        drawDot(mx, my, size)
     }
+})
+
+
+document.addEventListener('pointerup', (e) => {
+    pressed = false
+    if (balde.checked) return
+    
 })
 
 canvas.addEventListener('pointerup', (e)=>{
@@ -244,14 +272,6 @@ canvas.addEventListener('pointerup', (e)=>{
         image.data[2]
     )
 })
-
-document.addEventListener('pointerup', (e) => {
-    pressed = false
-    if (balde.checked) return
-    
-})
-
-
 canvas.addEventListener('pointermove', (e)=>{
     if (balde.checked){
 
@@ -272,4 +292,45 @@ canvas.addEventListener('pointermove', (e)=>{
 range.addEventListener('input',(e)=>{
     numRange.textContent = Math.max(range.value,1)
     size = numRange.textContent
+})
+
+salvar.addEventListener('pointerup',(e)=>{
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!canvas) return
+
+    canvas.toBlob(blob =>{
+        const url = URL.createObjectURL(blob)
+
+        const link = document.createElement('a')
+        link.href = url
+        link.download = "FKDraw.png"
+        link.click()
+
+        URL.revokeObjectURL(url)
+    },"image/png")
+})
+
+abrir.addEventListener('change',(e)=>{
+    const file = abrir.files[0]
+    if (!file) return 
+    
+    const url = URL.createObjectURL(file)
+
+    img.onload = () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        
+        ctx.imageSmoothingEnabled = false
+        ctx.clearRect(0,0,canvas.width,canvas.height)
+        ctx.drawImage(img,0,0)
+        
+        scale = container.clientHeight / canvas.height
+        
+        container.style.width = (img.width * scale) + "px"
+        container.style.height = (img.height * scale) + "px"
+        URL.revokeObjectURL(file)
+    }
+    img.src = url
 })

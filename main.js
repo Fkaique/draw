@@ -233,6 +233,7 @@ document.addEventListener('pointerup', (e)=>{
     if (balde.checked) return;
     if (gotas.checked) {
         const [mx,my] = canvasRelative(e.clientX,e.clientY)
+        if (mx < 0 || my < 0 || mx >= canvas.width || my >= canvas.height) return
         const image = ctx.getImageData(mx,my,1,1)
         corA.value = rgbaToHex(image.data[0],
             image.data[1],

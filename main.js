@@ -228,22 +228,26 @@ canvas.addEventListener('pointerdown', (e)=>{
     }
 })
 
+canvas.addEventListener('pointerup', (e)=>{
+    if (!gotas.checked) return
 
-document.addEventListener('pointerup', (e)=>{
-    if (balde.checked) return;
-    if (gotas.checked) {
-        const [mx,my] = canvasRelative(e.clientX,e.clientY)
-        if (mx < 0 || my < 0 || mx >= canvas.width || my >= canvas.height) return
-        const image = ctx.getImageData(mx,my,1,1)
-        corA.value = rgbaToHex(image.data[0],
-            image.data[1],
-            image.data[2]
-        )
-        return;
-    }
-    if (e.button!=0) return;
-    pressed = false
+    const [mx, my] = canvasRelative(e.clientX, e.clientY)
+
+    const image = ctx.getImageData(mx, my, 1, 1)
+
+    corA.value = rgbaToHex(
+        image.data[0],
+        image.data[1],
+        image.data[2]
+    )
 })
+
+document.addEventListener('pointerup', (e) => {
+    pressed = false
+    if (balde.checked) return
+    
+})
+
 
 canvas.addEventListener('pointermove', (e)=>{
     if (balde.checked){

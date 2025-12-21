@@ -1,18 +1,24 @@
 const container = document.getElementById('container')
+// const criar = document.getElementById('criar')
 const range = document.getElementById('range')
 const numRange = document.getElementById('numRange')
 const pincel = document.getElementById('pincel')
 const borracha = document.getElementById('borracha')
 const balde = document.getElementById('balde')
-const cor = document.getElementById('cor')
+const gotas = document.getElementById('gotas')
+const corA = document.getElementById('corA')
+const corB = document.getElementById('corB')
+
 numRange.textContent = range.value
 
-const canvas = document.createElement('canvas')
-const ctx = canvas.getContext('2d', {
-    alpha: false,
+let canvas = document.createElement('canvas')
+let ctx = canvas.getContext('2d', {
+    alpha: true,
     willReadFrequently: true,
-
 })
+
+// canvas.style.backgroundColor = 'black'
+
 ctx.imageSmoothingEnabled = false
 ctx.imageSmoothingQuality = "low"
 
@@ -27,16 +33,20 @@ function resize() {
     const saved = ctx.getImageData(0,0,canvas.width,canvas.height)
     canvas.width  = rect.width
     canvas.height = rect.height
+    ctx.fillStyle = corB.value
+    ctx.fillRect(0,0,canvas.width,canvas.height)
     ctx.putImageData(saved,0,0)
 }
 resize()
+
+
+ctx.fillStyle = corB.value
+ctx.fillRect(0,0,canvas.width,canvas.height)
 
 const resizeObserver = new ResizeObserver(resize)
 resizeObserver.observe(container)
 
 
-ctx.fillStyle = 'white'
-ctx.fillRect(0,0,canvas.width,canvas.height)
 
 container.appendChild(canvas)
 
@@ -58,6 +68,12 @@ function hexToRgba(hex){
     const g = hex.substring(3,5)
     const b = hex.substring(5,7)
     return [parseInt(r,16),parseInt(g,16),parseInt(b,16),255]
+}
+
+function rgbaToHex(r, g, b) {
+  return (
+    "#" + [r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("")
+  )
 }
 
 function moveTo(x,y){
@@ -191,8 +207,8 @@ canvas.addEventListener('pointerdown', (e)=>{
     const [mx,my] = canvasRelative(e.clientX,e.clientY)
 
     if (balde.checked){
-        fill(mx,my,hexToRgba(cor.value))
-    }else {
+        fill(mx,my,hexToRgba(corA.value))
+    }else if (pincel.checked || borracha.checked){
         if (e.button!=0) return;
         pressed = true  
         const rect = canvas.getBoundingClientRect()
@@ -202,7 +218,11 @@ canvas.addEventListener('pointerdown', (e)=>{
         // ctx.lineCap = "round"
         // ctx.lineJoin = "round"
         // ctx.strokeStyle = cor.value
-        lineStroke = hexToRgba(cor.value)
+        if (borracha.checked){
+            lineStroke = hexToRgba(corB.value)
+        }else {
+            lineStroke = hexToRgba(corA.value)
+        }
         lineTo(mx, my, size)
         // ctx.stroke()
     }
@@ -211,6 +231,15 @@ canvas.addEventListener('pointerdown', (e)=>{
 
 document.addEventListener('pointerup', (e)=>{
     if (balde.checked) return;
+    if (gotas.checked) {
+        const [mx,my] = canvasRelative(e.clientX,e.clientY)
+        const image = ctx.getImageData(mx,my,1,1)
+        corA.value = rgbaToHex(image.data[0],
+            image.data[1],
+            image.data[2]
+        )
+        return;
+    }
     if (e.button!=0) return;
     pressed = false
 })
@@ -218,14 +247,14 @@ document.addEventListener('pointerup', (e)=>{
 canvas.addEventListener('pointermove', (e)=>{
     if (balde.checked){
 
-    }else{
+    }else if (pincel.checked || borracha.checked){
         if (!pressed) {return};
         const rect = canvas.getBoundingClientRect()
         const [mx,my] = canvasRelative(e.clientX,e.clientY)
         if (borracha.checked){
-            lineStroke = [255,255,255,255]
+            lineStroke = hexToRgba(corB.value)
         }else{
-            ctx.strokeStyle = cor.value
+            lineStroke = hexToRgba(corA.value)
         }
         lineTo(mx, my, size)
         ctx.stroke()

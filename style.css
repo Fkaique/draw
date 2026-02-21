@@ -2,11 +2,6 @@
     margin: 0;
     padding: 0;
 }
-
-body {
-    overflow: hidden;
-}
-
 .controlers {
     display: flex;
     padding: 10px;
@@ -24,12 +19,12 @@ body {
 .container {
     border: 1px solid black;
     margin: 0 auto;
-    resize: both;
+    /* resize: both; */
     overflow: hidden;
     width: 500px;
     height: 500px;
 }
-.files{
+.bottom{
     display: flex;
     justify-content: center;
     padding: 10px;
@@ -42,6 +37,23 @@ canvas {
     width: 100%;
     height: 100%;
     image-rendering: pixelated;
+}
+
+.sizeDraw {
+    width: 50px;
+}
+
+.tranca {
+    display: flex;
+    
+}
+
+.tranca img {
+    width: 20px;
+}
+
+.tranca input {
+    display: none;
 }
 
 @media (max-width: 600px){

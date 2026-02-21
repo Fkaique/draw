@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+
+<head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="imgs/icon.png" type="image/icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draw</title>
 </head>
+
 <body>
     <div class="controlers">
         <!-- <label for="">
             <button id="criar">Criar</button>
         </label> -->
         <label for=""> Tamanho:
-            <input type="range" name="" id="range" value="2">
+            <input type="range" name="" id="range" value="1">
             <span id="numRange"></span>
         </label>
         <label for=""> Cor:
@@ -30,7 +32,7 @@
     <div class="container" id="container">
 
     </div>
-    <label for="" class="files">
+    <label for="" class="bottom">
         <button id="salvar" class="salvar">Salvar</button>
         <button class="abrir">
             <label for="abrir">
@@ -38,7 +40,22 @@
             </label>
         </button>
     </label>
-        <input type="file" style="display: none;" id="abrir" accept="image/png, image/jpeg">
+    <label for="" class="bottom">
+        <p id="size"></p>
+    </label>
+
+    <label for="" class="bottom">
+        Largura
+        <input type="number" class="sizeDraw" name="" value="64" id="width">
+        Altura
+        <input type="number" class="sizeDraw" name="" value="64" id="height">
+        <div class="tranca">
+            <label for="cadeado"><img id="imgTranca" src="/imgs/tranca.png" alt="trancar"></label>
+            <input type="checkbox" name="" id="cadeado" checked>
+        </div>
+    </label>
+    <input type="file" style="display: none;" id="abrir" accept="image/png, image/jpeg">
     <script src="main.js"></script>
 </body>
+
 </html>

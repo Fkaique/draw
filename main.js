@@ -9,12 +9,18 @@ const trancado = document.getElementById('cadeado')
 const imgTranca = document.getElementById('imgTranca')
 const range = document.getElementById('range')
 const numRange = document.getElementById('numRange')
-const pincel = document.getElementById('pincel')
-const borracha = document.getElementById('borracha')
-const balde = document.getElementById('balde')
-const gotas = document.getElementById('gotas')
+const pincelTool = document.getElementById('pincel')
+const borrachaTool = document.getElementById('borracha')
+const baldeTool = document.getElementById('balde')
+const gotasTool = document.getElementById('gotas')
+const selectionTool = document.getElementById('selection')
 const corA = document.getElementById('corA')
-const corB = document.getElementById('corB')
+const corB = document.getElementById('xColor')
+
+// Mouse
+
+let mouseX
+let mouseY
 
 // historico
 
@@ -23,13 +29,28 @@ let redoStack = []
 
 //
 
+let selected
+let selecting = false
+let selStartX
+let selStartY
+let selEndX
+let selEndY
+let copied = null
+let cut = false
+
 numRange.textContent = range.value
 
-let canvas = document.createElement('canvas')
-let ctx = canvas.getContext('2d', {
+
+const canvas = document.createElement('canvas')
+canvas.className = "main"
+
+const ctx = canvas.getContext('2d', {
     alpha: true,
     willReadFrequently: true,
 })
+const canvasOverlayer = document.createElement('canvas')
+canvas.className = "overlayer"
+const ctxOverlayer = canvasOverlayer.getContext('2d')
 
 // canvas.style.backgroundColor = 'black'
 
@@ -51,6 +72,8 @@ function resize() {
     // 1️⃣ muda tamanho interno real
     canvas.width = Number(drawWidth.value)
     canvas.height = Number(drawHeight.value)
+    canvasOverlayer.width = Number(drawWidth.value)
+    canvasOverlayer.height = Number(drawHeight.value)
 
     // 2️⃣ recalcula scale baseado na ALTURA atual do container
     scale = container.clientHeight / canvas.height
@@ -59,7 +82,7 @@ function resize() {
     container.style.width = (canvas.width * scale) + "px"
     container.style.height = (canvas.height * scale) + "px"
 
-    ctx.fillStyle = corB.value
+    ctx.fillStyle = '#00000000'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.putImageData(saved, 0, 0)
 }
@@ -74,9 +97,39 @@ const observer = new ResizeObserver(entries => {
 observer.observe(container);
 
 container.appendChild(canvas)
+container.appendChild(canvasOverlayer)
 
 let pressed = false
 let size = 1;
+
+function selection(x1, y1, x2, y2) {
+    return { x1, y1, x2, y2 }
+}
+
+function copy({ x1, y1, x2, y2 }) {
+    if (!selected) return
+    const x = Math.min(x1, x2)
+    const y = Math.min(y1, y2)
+    const width = Math.abs(x2 - x1)
+    const height = Math.abs(y2 - y1)
+    copied = ctx.getImageData(x, y, width, height)
+    if (cut) {
+        const x = Math.min(selected.x1, selected.x2)
+        const y = Math.min(selected.y1, selected.y2)
+        const w = Math.abs(selected.x2 - selected.x1)
+        const h = Math.abs(selected.y2 - selected.y1) 
+        ctx.clearRect(x,y,w,h)
+    }
+    selected = null
+}
+
+function paste(x, y) {
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = copied.width
+    tempCanvas.height = copied.height
+    tempCanvas.getContext('2d').putImageData(copied, 0, 0)
+    ctx.drawImage(tempCanvas, x, y)
+}
 
 // history
 
@@ -129,17 +182,22 @@ function hexToRgba(hex) {
     const r = hex.substring(1, 3)
     const g = hex.substring(3, 5)
     const b = hex.substring(5, 7)
-    return [parseInt(r, 16), parseInt(g, 16), parseInt(b, 16), 255]
+    const a = hex.substring(7, 9)
+    return [parseInt(r, 16), parseInt(g, 16), parseInt(b, 16), parseInt(a, 16)]
 }
 
-function rgbaToHex(r, g, b) {
+function rgbaToHex(r, g, b, a) {
     return (
-        "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("")
+        "#" + [r, g, b, a].map(v => v.toString(16).padStart(2, "0")).join("")
     )
 }
 
 function moveTo(x, y) {
     lineStart = [x, y]
+}
+
+function lerp(left, right, value) {
+    return left + (right - left) * value
 }
 
 function lineTo(x2, y2, thickness = 1) {
@@ -174,6 +232,8 @@ function lineTo(x2, y2, thickness = 1) {
     const w = image.width
     const c = 4
 
+    const a = lineStroke[3] / 255
+
     let x = x1
     let y = y1
 
@@ -194,12 +254,11 @@ function lineTo(x2, y2, thickness = 1) {
 
                 if (lx < 0 || ly < 0 || lx >= sw || ly >= sh)
                     continue
-
                 const index = (ly * w + lx) * c
-                image.data[index] = lineStroke[0]
-                image.data[index + 1] = lineStroke[1]
-                image.data[index + 2] = lineStroke[2]
-                image.data[index + 3] = lineStroke[3]
+                image.data[index] = lerp(image.data[index], lineStroke[0], a)
+                image.data[index + 1] = lerp(image.data[index + 1], lineStroke[1], a)
+                image.data[index + 2] = lerp(image.data[index + 2], lineStroke[2], a)
+                image.data[index + 3] = Math.min(image.data[index + 3] + lineStroke[3], 255)
             }
         }
 
@@ -218,16 +277,18 @@ function drawDot(x, y, thickness) {
         thickness, thickness
     )
 
+    const a = lineStroke[3] / 255
+
     for (let ox = -r; ox <= r; ox++) {
         for (let oy = -r; oy <= r; oy++) {
             if (ox * ox + oy * oy > r * r) continue
             const px = ox + r
             const py = oy + r
-            const i = (py * image.width + px) * 4
-            image.data[i] = lineStroke[0]
-            image.data[i + 1] = lineStroke[1]
-            image.data[i + 2] = lineStroke[2]
-            image.data[i + 3] = lineStroke[3]
+            const index = (py * image.width + px) * 4
+            image.data[index] = lerp(image.data[index], lineStroke[0], a)
+            image.data[index + 1] = lerp(image.data[index + 1], lineStroke[1], a)
+            image.data[index + 2] = lerp(image.data[index + 2], lineStroke[2], a)
+            image.data[index + 3] = Math.min(image.data[index + 3] + lineStroke[3], 255)
         }
     }
 
@@ -298,8 +359,31 @@ document.addEventListener("keydown", (e) => {
         e.preventDefault()
         redo()
     }
+
+    if (e.ctrlKey && e.key === 'c') {
+        ctxOverlayer.clearRect(0, 0, canvas.width, canvas.height)
+        if (selected) {
+            copy(selected)
+        }
+    }
+
+    if (e.ctrlKey && e.key === 'x') {
+        if (selected) {
+            cut = true
+            copy(selected)
+            selectionTool.checked = false
+            pincelTool.checked = true
+        }
+    }
+
+    if (e.ctrlKey && e.key === 'v') {
+        if (copied) {
+            saveState()
+            paste(mouseX, mouseY)
+        }
+    }
     console.log(e.key);
-    
+
 })
 
 drawWidth.addEventListener('change', () => {
@@ -310,6 +394,7 @@ drawWidth.addEventListener('change', () => {
 
 
 })
+
 drawHeight.addEventListener('change', () => {
     if (trancado.checked) {
         drawWidth.value = drawHeight.value
@@ -317,41 +402,88 @@ drawHeight.addEventListener('change', () => {
     resize()
 })
 
-
 trancado.addEventListener('change', () => {
     imgTranca.style.opacity = trancado.checked ? 1 : .5
 })
 
-canvas.addEventListener('pointerdown', (e) => {
+canvas.addEventListener('mousemove', (e) => {
     const [mx, my] = canvasRelative(e.clientX, e.clientY)
+    mouseX = mx
+    mouseY = my
+    if (cut && copied) {
+        ctxOverlayer.clearRect(0, 0, canvas.width, canvas.height)
+        ctxOverlayer.putImageData(copied, mouseX, mouseY)
+    }
+})
 
-    if (balde.checked) {
+canvas.addEventListener('mousemove', (e) => {
+    if (!pressed) return
+    console.log("neh");
+    const [mx, my] = canvasRelative(e.clientX, e.clientY)
+    if (selectionTool.checked) {
+        if (!selecting) {
+            selStartX = mx
+            selStartY = my
+            selecting = true
+        } else {
+            selEndX = mx
+            selEndY = my
+        }
+        const w = selEndX - selStartX
+        const h = selEndY - selStartY
+        ctxOverlayer.clearRect(0, 0, canvas.width, canvas.height)
+        ctxOverlayer.fillStyle = '#7170707d'
+        ctxOverlayer.fillRect(selStartX, selStartY, w, h)
+    }
+})
+
+canvas.addEventListener('pointerdown', (e) => {
+    ctxOverlayer.clearRect(0, 0, canvas.width, canvas.height)
+    const [mx, my] = canvasRelative(e.clientX, e.clientY)
+    if (selectionTool.checked) {
+        pressed = true
+    } else if (baldeTool.checked) {
         saveState()
         fill(mx, my, hexToRgba(corA.value))
-    } else if (pincel.checked || borracha.checked) {
+    } else if (pincelTool.checked || borrachaTool.checked) {
         saveState()
         if (e.button != 0) return;
+        if (pincelTool) {
+            if (cut) {
+                paste(mouseX, mouseY)
+                cut = false
+                return
+            }
+        }
         pressed = true
         moveTo(mx, my)
 
-        lineStroke = borracha.checked
+        lineStroke = borrachaTool.checked
             ? hexToRgba(corB.value)
             : hexToRgba(corA.value)
-
+        console.log(corA.value)
         // 🔥 desenha ponto no clique
         drawDot(mx, my, size)
     }
 })
 
-
 document.addEventListener('pointerup', (e) => {
     pressed = false
-    if (balde.checked) return
+    if (baldeTool.checked) return
+    const [mx, my] = canvasRelative(e.clientX, e.clientY)
+    if (selectionTool.checked) {
+        if (!selecting) return
+        console.log(selected);
+        selected = selection(selStartX, selStartY, selEndX, selEndY)
 
+        selecting = false
+        selStartX = 0
+        selStartY = 0
+    }
 })
 
 canvas.addEventListener('pointerup', (e) => {
-    if (!gotas.checked) return
+    if (!gotasTool.checked) return
 
     e.preventDefault()
     e.stopPropagation()
@@ -366,13 +498,14 @@ canvas.addEventListener('pointerup', (e) => {
         image.data[2]
     )
 })
-canvas.addEventListener('pointermove', (e) => {
-    if (balde.checked) {
 
-    } else if (pincel.checked || borracha.checked) {
+canvas.addEventListener('pointermove', (e) => {
+    if (baldeTool.checked) {
+
+    } else if (pincelTool.checked || borrachaTool.checked) {
         if (!pressed) { return };
         const [mx, my] = canvasRelative(e.clientX, e.clientY)
-        if (borracha.checked) {
+        if (borrachaTool.checked) {
             lineStroke = hexToRgba(corB.value)
         } else {
             lineStroke = hexToRgba(corA.value)
